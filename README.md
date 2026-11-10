@@ -1,0 +1,1 @@
+# estudo-caso-lean-precise-graphix
