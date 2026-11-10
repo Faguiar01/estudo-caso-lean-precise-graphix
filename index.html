@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estudo de Caso Lean: O Sócio (Precise Graphix)</title>
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --primary-dark: #111827;
+            --secondary: #3b82f6;
+            --accent: #f59e0b;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --background: #f8fafc;
+            --surface: #ffffff;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: var(--surface);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        header {
+            text-align: center;
+            border-bottom: 3px solid var(--primary);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            color: var(--primary);
+            font-size: 28px;
+            margin-bottom: 10px;
+            line-height: 1.3;
+        }
+
+        header p {
+            color: var(--text-light);
+            font-size: 16px;
+        }
+
+        .student-info {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 15px;
+            margin-bottom: 10px;
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .instrucao {
+            font-size: 14px;
+            color: var(--text-light);
+            margin-bottom: 8px;
+            font-style: italic;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 15px;
+            background-color: #fff;
+            color: var(--text);
+            transition: border-color 0.2s, box-shadow 0.2s;
+            font-family: inherit;
+        }
+
+        input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: var(--secondary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 110px;
+            line-height: 1.5;
+        }
+
+        .section-title {
+            font-size: 20px;
+            color: var(--primary);
+            margin: 38px 0 12px 0;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-num {
+            background: var(--primary);
+            color: #fff;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            flex: 0 0 32px;
+        }
+
+        .ishikawa-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .sub-questions {
+            background: #fafafa;
+            padding: 16px;
+            border-left: 4px solid var(--secondary);
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 0;
+            transition: background 0.2s;
+        }
+
+        .sub-questions:hover {
+            background: #f5f8ff;
+        }
+
+        .sub-questions ul {
+            margin: 0 0 12px 18px;
+            color: var(--text);
+            font-size: 14px;
+        }
+
+        .sub-questions ul li {
+            margin-bottom: 5px;
+        }
+
+        .sub-questions textarea {
+            min-height: 90px;
+            background: #fff;
+        }
+
+        /* Cores por categoria (6Ms) */
+        .cat-mao       { border-left-color: #3b82f6; }
+        .cat-metodo    { border-left-color: #8b5cf6; }
+        .cat-material  { border-left-color: #f59e0b; }
+        .cat-maquinas  { border-left-color: #10b981; }
+        .cat-medicao   { border-left-color: #ef4444; }
+        .cat-ambiente  { border-left-color: #06b6d4; }
+
+        /* -------- Barra de ações -------- */
+        .actions {
+            max-width: 900px;
+            margin: 30px auto 60px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+        }
+
+        button {
+            padding: 13px 26px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+            font-family: inherit;
+        }
+
+        button:active { transform: translateY(1px); }
+
+        button:disabled {
+            opacity: 0.65;
+            cursor: wait;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: #fff;
+            box-shadow: 0 4px 10px -2px rgba(30, 58, 138, 0.45);
+        }
+        .btn-primary:hover:not(:disabled) { background-color: var(--primary-dark); }
+
+        .btn-danger {
+            background-color: transparent;
+            color: var(--danger);
+            border: 2px solid #fecaca;
+        }
+        .btn-danger:hover:not(:disabled) {
+            background-color: #fef2f2;
+            border-color: var(--danger);
+        }
+
+        .status-salvo {
+            width: 100%;
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-light);
+            min-height: 18px;
+        }
+
+        /* -------- Toast -------- */
+        .toast {
+            position: fixed;
+            bottom: 26px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text);
+            color: #fff;
+            padding: 11px 22px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s, transform 0.3s;
+            z-index: 999;
+            box-shadow: 0 10px 20px -5px rgba(0,0,0,0.35);
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* -------- Estilos usados na versão em PDF -------- */
+        .pdf-valor {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text);
+            border-bottom: 1px solid #cbd5e1;
+            padding: 6px 4px;
+            min-height: 26px;
+        }
+
+        .pdf-resposta {
+            font-size: 14px;
+            white-space: pre-wrap;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 10px 12px;
+            min-height: 52px;
+            background: #fff;
+            color: var(--text);
+            line-height: 1.5;
+        }
+
+        /* -------- Responsivo -------- */
+        @media (max-width: 768px) {
+            .ishikawa-grid, .student-info { grid-template-columns: 1fr; }
+            .container { padding: 22px; }
+            header h1 { font-size: 22px; }
+            .actions { flex-direction: column; }
+            .actions button { width: 100%; }
+        }
+
+        /* -------- Impressão (Ctrl + P) -------- */
+        @media print {
+            body {
+                background: #fff;
+                padding: 0;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .container {
+                box-shadow: none;
+                padding: 0;
+                max-width: 100%;
+                border-radius: 0;
+            }
+            .actions, .instrucao, .sub-questions ul, .toast, .status-salvo {
+                display: none !important;
+            }
+            textarea, input[type="text"] {
+                border: 1px solid #94a3b8 !important;
+                background: transparent !important;
+                resize: none;
+                overflow: visible;
+            }
+            .sub-questions {
+                background: transparent;
+                border-left: 2px solid #94a3b8;
+                padding: 5px 0 5px 15px;
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+            .section-title { break-after: avoid; page-break-after: avoid; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="documento">
+    <header>
+        <h1>Análise de Caso e Solução de Problemas Lean</h1>
+        <p>Estudo de Caso Industrial: O Sócio (Temporada 3, Episódio 7 — Precise Graphix)</p>
+    </header>
+
+    <div class="student-info">
+        <div class="form-group" style="margin-bottom:0;">
+            <label for="student-name">Nome do Aluno:</label>
+            <input type="text" id="student-name" placeholder="Digite seu nome completo" autocomplete="name">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+            <label for="student-date">Data:</label>
+            <input type="text" id="student-date" placeholder="DD/MM/AAAA" inputmode="numeric" maxlength="10">
+        </div>
+    </div>
+
+    <!-- 1. SITUAÇÃO ATUAL -->
+    <h2 class="section-title"><span class="section-num">1</span> Situação Atual</h2>
+    <p class="instrucao">Descreva o cenário inicial encontrado por Marcus Lemonis. Qual é o segmento da empresa, o porte dos clientes, as condições tecnológicas do maquinário e a situação financeira geral?</p>
+    <div class="form-group">
+        <textarea id="situacao-atual" placeholder="Anote aqui suas observações sobre o contexto da empresa..."></textarea>
+    </div>
+
+    <!-- 2. DEFINIÇÃO DO PROBLEMA -->
+    <h2 class="section-title"><span class="section-num">2</span> Definição do Problema</h2>
+    <p class="instrucao">Qual é o problema central (o sintoma operacional mais grave) que impede a fábrica de ter lucro e cumprir os prazos, apesar de faturar milhões de dólares?</p>
+    <div class="form-group">
+        <textarea id="definicao-problema" placeholder="Defina claramente o problema focal a ser atacado pelo método Lean..."></textarea>
+    </div>
+
+    <!-- 3. ISHIKAWA - 6Ms -->
+    <h2 class="section-title"><span class="section-num">3</span> Análise de Causas (Diagrama de Ishikawa — 6Ms)</h2>
+    <p class="instrucao">Responda às perguntas abaixo focando em mapear as causas que geram os problemas da fábrica enquanto assiste ao vídeo:</p>
+
+    <div class="ishikawa-grid">
+        <!-- Mão de Obra -->
+        <div class="form-group sub-questions cat-mao">
+            <label>👥 Mão de Obra</label>
+            <ul>
+                <li>Quem dá a palavra final na fábrica?</li>
+                <li>Os operadores sabem exatamente a quem obedecer?</li>
+                <li>Como o conflito entre os irmãos afeta o clima dos funcionários?</li>
+            </ul>
+            <textarea id="ishikawa-mao-obra" placeholder="Respostas para Mão de Obra..."></textarea>
+        </div>
+
+        <!-- Método -->
+        <div class="form-group sub-questions cat-metodo">
+            <label>📋 Método</label>
+            <ul>
+                <li>Existe uma "Ordem de Serviço" formal ou as ordens são verbais ("no grito")?</li>
+                <li>Como a fábrica descobre que o cliente pediu uma alteração no projeto?</li>
+                <li>Existe um padrão visual (POP) para a montagem dos letreiros?</li>
+            </ul>
+            <textarea id="ishikawa-metodo" placeholder="Respostas para Método..."></textarea>
+        </div>
+
+        <!-- Matéria-Prima -->
+        <div class="form-group sub-questions cat-material">
+            <label>🪵 Matéria-Prima</label>
+            <ul>
+                <li>O que é feito com o material cortado errado (vai para o lixo ou é reaproveitado)?</li>
+                <li>O estoque de insumos caros (LEDs, acrílico) é trancado e controlado?</li>
+            </ul>
+            <textarea id="ishikawa-materia-prima" placeholder="Respostas para Matéria-Prima..."></textarea>
+        </div>
+
+        <!-- Máquinas -->
+        <div class="form-group sub-questions cat-maquinas">
+            <label>⚙️ Máquinas</label>
+            <ul>
+                <li>As máquinas da empresa são velhas ou modernas?</li>
+                <li>O problema da empresa é a falta de tecnologia ou o uso dela?</li>
+            </ul>
+            <textarea id="ishikawa-maquinas" placeholder="Respostas para Máquinas..."></textarea>
+        </div>
+
+        <!-- Medição -->
+        <div class="form-group sub-questions cat-medicao">
+            <label>📐 Medição</label>
+            <ul>
+                <li>Alguém confere as medidas e a ortografia das placas antes do envio?</li>
+                <li>A empresa sabe o custo real de cada projeto antes de fabricar?</li>
+            </ul>
+            <textarea id="ishikawa-medicao" placeholder="Respostas para Medição..."></textarea>
+        </div>
+
+        <!-- Meio Ambiente -->
+        <div class="form-group sub-questions cat-ambiente">
+            <label>🏢 Meio Ambiente (Layout / Organização)</label>
+            <ul>
+                <li>O chão de fábrica parece organizado ou caótico e bagunçado?</li>
+                <li>O layout permite que o material flua de forma contínua ou gera idas e vindas?</li>
+                <li>Há sinalização, iluminação e espaço adequados para o trabalho?</li>
+            </ul>
+            <textarea id="ishikawa-meio-ambiente" placeholder="Respostas para Meio Ambiente..."></textarea>
+        </div>
+    </div>
+
+    <!-- 4. CONTRAMEDIDAS LEAN -->
+    <h2 class="section-title"><span class="section-num">4</span> Contramedidas Lean (Plano de Ação)</h2>
+    <p class="instrucao">Com base nas causas levantadas, proponha ações práticas. Relacione cada causa raiz a uma ferramenta Lean (5S, Kanban, Poka-Yoke, Padronização, Fluxo Contínuo, Gestão Visual, 5W2H etc.) e descreva o que deveria ser feito.</p>
+    <div class="form-group">
+        <textarea id="contramedidas" placeholder="Causa → Ferramenta Lean → Ação proposta → Responsável → Prazo..."></textarea>
+    </div>
+
+    <!-- 5. LIÇÕES APRENDIDAS -->
+    <h2 class="section-title"><span class="section-num">5</span> Resultados e Lições Aprendidas</h2>
+    <p class="instrucao">Quais indicadores (KPIs) deveriam passar a ser monitorados? Quais foram os resultados após a intervenção de Marcus? O que este caso ensina sobre gestão e liderança?</p>
+    <div class="form-group">
+        <textarea id="licoes-aprendidas" placeholder="Resultados esperados, indicadores e aprendizados do episódio..."></textarea>
+    </div>
+</div>
+
+<!-- Barra de ações (não entra no PDF) -->
+<div class="actions">
+    <button type="button" class="btn-primary" id="btn-pdf">📄 Gerar PDF</button>
+    <button type="button" class="btn-danger" id="btn-limpar">🗑️ Limpar Formulário</button>
+    <div class="status-salvo" id="status-salvo"></div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+(function () {
+    'use strict';
+
+    const STORAGE_KEY = 'lean-precise-graphix-v1';
+    const documento   = document.getElementById('documento');
+    const campos      = Array.from(documento.querySelectorAll('input[type="text"], textarea'));
+    const toastEl     = document.getElementById('toast');
+    const statusEl    = document.getElementById('status-salvo');
+    let toastTimer;
+
+    /* ---------------- Toast ---------------- */
+    function toast(msg) {
+        toastEl.textContent = msg;
+        toastEl.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2400);
+    }
+
+    /* ---------------- Salvamento automático ---------------- */
+    function salvar() {
+        const dados = {};
+        campos.forEach(c => { if (c.id) dados[c.id] = c.value; });
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(dados)); } catch (e) {}
+        const agora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        statusEl.textContent = 'Rascunho salvo automaticamente às ' + agora;
+    }
+
+    function carregar() {
+        let dados = {};
+        try { dados = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch (e) {}
+        campos.forEach(c => {
+            if (c.id && dados[c.id] !== undefined) c.value = dados[c.id];
+        });
+        if (Object.keys(dados).length) {
+            statusEl.textContent = 'Rascunho anterior recuperado.';
+        }
+    }
+
+    carregar();
+
+    let debounceTimer;
+    documento.addEventListener('input', function (e) {
+        if (e.target.matches('input, textarea')) {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(salvar, 700);
+        }
+    });
+
+    /* ---------------- Máscara simples de data ---------------- */
+    const campoData = document.getElementById('student-date');
+    campoData.addEventListener('input', function () {
+        let v = this.value.replace(/\D/g, '').slice(0, 8);
+        if (v.length > 4) v = v.slice(0, 2) + '/' + v.slice(2, 4) + '/' + v.slice(4);
+        else if (v.length > 2) v = v.slice(0, 2) + '/' + v.slice(2);
+        this.value = v;
+    });
+
+    /* ---------------- Limpar formulário ---------------- */
+    document.getElementById('btn-limpar').addEventListener('click', function () {
+        if (!confirm('Tem certeza que deseja apagar todas as respostas deste formulário?')) return;
+        campos.forEach(c => { c.value = ''; });
+        try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+        statusEl.textContent = '';
+        toast('Formulário limpo com sucesso.');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    /* ---------------- Geração do PDF ---------------- */
+    function nomeDoArquivo() {
+        const nome = (document.getElementById('student-name').value || '').trim();
+        const base = nome ? 'Estudo-de-Caso-Lean-' + nome : 'Estudo-de-Caso-Lean';
+        return base
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // remove acentos
+            .replace(/[^a-zA-Z0-9\-_ ]/g, '')
+            .trim()
+            .replace(/\s+/g, '-') + '.pdf';
+    }
+
+    function montarCloneParaPDF() {
+        const clone = documento.cloneNode(true);
+
+        // 1) Substitui os inputs de texto pelo valor digitado
+        const origInputs = documento.querySelectorAll('input[type="text"]');
+        const clonInputs = clone.querySelectorAll('input[type="text"]');
+        clonInputs.forEach((inp, i) => {
+            const valor = (origInputs[i] ? origInputs[i].value : '').trim();
+            const div = document.createElement('div');
+            div.className = 'pdf-valor';
+            div.textContent = valor || '—';
+            inp.replaceWith(div);
+        });
+
+        // 2) Substitui as textareas por blocos de texto (evita corte no PDF)
+        const origTAs = documento.querySelectorAll('textarea');
+        const clonTAs = clone.querySelectorAll('textarea');
+        clonTAs.forEach((ta, i) => {
+            const valor = (origTAs[i] ? origTAs[i].value : '').trim();
+            const div = document.createElement('div');
+            div.className = 'pdf-resposta';
+            div.textContent = valor || '—';
+            ta.replaceWith(div);
+        });
+
+        // 3) Remove instruções (mantém apenas o que o aluno respondeu)
+        clone.querySelectorAll('.instrucao, .sub-questions ul').forEach(el => el.remove());
+
+        // 4) Ajustes visuais
+        clone.style.boxShadow     = 'none';
+        clone.style.borderRadius  = '0';
+        clone.style.maxWidth      = '100%';
+        clone.style.padding       = '12px';
+
+        return clone;
+    }
+
+    document.getElementById('btn-pdf').addEventListener('click', async function () {
+        const btn = this;
+        const textoOriginal = btn.innerHTML;
+
+        // Fallback caso a biblioteca não tenha carregado (offline)
+        if (typeof window.html2pdf === 'undefined') {
+            toast('Gerando via impressão do navegador...');
+            window.print();
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '⏳ Gerando PDF...';
+
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText =
+            'position:fixed;left:-10000px;top:0;width:900px;background:#ffffff;padding:10px;';
+
+        try {
+            wrapper.appendChild(montarCloneParaPDF());
+            document.body.appendChild(wrapper);
+
+            await window.html2pdf().set({
+                margin: [8, 8, 10, 8],
+                filename: nomeDoArquivo(),
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['css', 'legacy'] }
+            }).from(wrapper).save();
+
+            toast('✅ PDF gerado com sucesso!');
+        } catch (err) {
+            console.error('Erro ao gerar PDF:', err);
+            toast('Não foi possível gerar o PDF. Use Ctrl + P para imprimir.');
+        } finally {
+            wrapper.remove();
+            btn.disabled = false;
+            btn.innerHTML = textoOriginal;
+        }
+    });
+})();
+</script>
+</body>
+</html>
