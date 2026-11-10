@@ -5,13 +5,14 @@
 
     const STORAGE_KEY = 'lean-precise-graphix-v1';
     const documento   = document.getElementById('documento');
-    const campos      = Array.from(documento.querySelectorAll('input[type="text"], textarea'));
+    const campos      = Array.from(documento.querySelectorAll('input, textarea, select'));
     const toastEl     = document.getElementById('toast');
     const statusEl    = document.getElementById('status-salvo');
     let toastTimer;
 
     /* ---------------- Toast ---------------- */
     function toast(msg) {
+        if (!toastEl) return;
         toastEl.textContent = msg;
         toastEl.classList.add('show');
         clearTimeout(toastTimer);
@@ -24,7 +25,7 @@
         campos.forEach(c => { if (c.id) dados[c.id] = c.value; });
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(dados)); } catch (e) {}
         const agora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-        statusEl.textContent = 'Rascunho salvo automaticamente às ' + agora;
+        if (statusEl) statusEl.textContent = 'Rascunho salvo automaticamente às ' + agora;
     }
 
     function carregar() {
@@ -33,7 +34,7 @@
         campos.forEach(c => {
             if (c.id && dados[c.id] !== undefined) c.value = dados[c.id];
         });
-        if (Object.keys(dados).length) {
+        if (Object.keys(dados).length && statusEl) {
             statusEl.textContent = 'Rascunho anterior recuperado.';
         }
     }
@@ -42,7 +43,7 @@
 
     let debounceTimer;
     documento.addEventListener('input', function (e) {
-        if (e.target.matches('input, textarea')) {
+        if (e.target.matches('input, textarea, select')) {
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(salvar, 700);
         }
@@ -50,26 +51,32 @@
 
     /* ---------------- Máscara simples de data ---------------- */
     const campoData = document.getElementById('student-date');
-    campoData.addEventListener('input', function () {
-        let v = this.value.replace(/\D/g, '').slice(0, 8);
-        if (v.length > 4) v = v.slice(0, 2) + '/' + v.slice(2, 4) + '/' + v.slice(4);
-        else if (v.length > 2) v = v.slice(0, 2) + '/' + v.slice(2);
-        this.value = v;
-    });
+    if (campoData) {
+        campoData.addEventListener('input', function () {
+            let v = this.value.replace(/\D/g, '').slice(0, 8);
+            if (v.length > 4) v = v.slice(0, 2) + '/' + v.slice(2, 4) + '/' + v.slice(4);
+            else if (v.length > 2) v = v.slice(0, 2) + '/' + v.slice(2);
+            this.value = v;
+        });
+    }
 
     /* ---------------- Limpar formulário ---------------- */
-    document.getElementById('btn-limpar').addEventListener('click', function () {
-        if (!confirm('Tem certeza que deseja apagar todas as respostas deste formulário?')) return;
-        campos.forEach(c => { c.value = ''; });
-        try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
-        statusEl.textContent = '';
-        toast('Formulário limpo com sucesso.');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
+    const btnLimpar = document.getElementById('btn-limpar');
+    if (btnLimpar) {
+        btnLimpar.addEventListener('click', function () {
+            if (!confirm('Tem certeza que deseja apagar todas as respostas deste formulário?')) return;
+            campos.forEach(c => { c.value = ''; });
+            try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+            if (statusEl) statusEl.textContent = '';
+            toast('Formulário limpo com sucesso.');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    }
 
     /* ---------------- Geração do PDF ---------------- */
     function nomeDoArquivo() {
-        const nome = (document.getElementById('student-name').value || '').trim();
+        const elNome = document.getElementById('student-name');
+        const nome = (elNome ? elNome.value : '').trim();
         const base = nome ? 'Estudo-de-Caso-Lean-' + nome : 'Estudo-de-Caso-Lean';
         return base
             .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -81,92 +88,101 @@
     function montarCloneParaPDF() {
         const clone = documento.cloneNode(true);
 
-        const origInputs = documento.querySelectorAll('input[type="text"]');
-        const clonInputs = clone.querySelectorAll('input[type="text"]');
+        // Captura todos os tipos de input e select
+        const origInputs = documento.querySelectorAll('input:not([type="hidden"]), select');
+        const clonInputs = clone.querySelectorAll('input:not([type="hidden"]), select');
         clonInputs.forEach((inp, i) => {
             const valor = (origInputs[i] ? origInputs[i].value : '').trim();
             const div = document.createElement('div');
             div.className = 'pdf-valor';
+            div.style.cssText = 'color: #1e293b; font-size: 14px; line-height: 1.5; padding: 4px 0; border-bottom: 1px solid #cbd5e1; word-break: break-word; min-height: 20px;';
             div.textContent = valor || '—';
             inp.replaceWith(div);
         });
 
+        // Captura todas as textareas preservando quebras de linha
         const origTAs = documento.querySelectorAll('textarea');
         const clonTAs = clone.querySelectorAll('textarea');
         clonTAs.forEach((ta, i) => {
             const valor = (origTAs[i] ? origTAs[i].value : '').trim();
             const div = document.createElement('div');
             div.className = 'pdf-resposta';
+            div.style.cssText = 'color: #1e293b; font-size: 14px; line-height: 1.6; padding: 6px 0; white-space: pre-wrap; word-break: break-word; min-height: 24px;';
             div.textContent = valor || '—';
             ta.replaceWith(div);
         });
 
+        // Remove elementos indesejados no PDF
         clone.querySelectorAll('.instrucao, .sub-questions ul').forEach(el => el.remove());
 
-        clone.style.boxShadow     = 'none';
-        clone.style.borderRadius  = '0';
-        clone.style.maxWidth      = '100%';
-        clone.style.padding       = '20px';
+        // Ajustes de layout para impressão
+        clone.style.boxShadow    = 'none';
+        clone.style.borderRadius = '0';
+        clone.style.maxWidth     = '100%';
+        clone.style.padding      = '20px';
+        clone.style.background   = '#ffffff';
 
         return clone;
     }
 
-    document.getElementById('btn-pdf').addEventListener('click', async function () {
-        const btn = this;
-        const textoOriginal = btn.innerHTML;
+    const btnPdf = document.getElementById('btn-pdf');
+    if (btnPdf) {
+        btnPdf.addEventListener('click', async function () {
+            const btn = this;
+            const textoOriginal = btn.innerHTML;
 
-        if (typeof window.html2pdf === 'undefined') {
-            toast('Gerando via impressão do navegador...');
-            window.print();
-            return;
-        }
+            if (typeof window.html2pdf === 'undefined') {
+                toast('Gerando via impressão do navegador...');
+                window.print();
+                return;
+            }
 
-        btn.disabled = true;
-        btn.innerHTML = '⏳ Gerando PDF...';
-        window.scrollTo(0, 0); // Volta ao topo para o html2canvas calcular certo
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Gerando PDF...';
+            window.scrollTo(0, 0);
 
-        // Cria uma máscara para o usuário não ver o documento piscando na tela
-        const overlay = document.createElement('div');
-        overlay.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(255,255,255,0.95); z-index:10000; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:bold; color:#1e3a8a;';
-        overlay.textContent = 'Gerando PDF, aguarde...';
-        document.body.appendChild(overlay);
+            // Overlay com z-index menor para não cobrir o wrapper
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(255,255,255,0.9); z-index:9998; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:bold; color:#1e3a8a;';
+            overlay.textContent = 'Gerando PDF, aguarde...';
+            document.body.appendChild(overlay);
 
-        // A MÁGICA ACONTECE AQUI: Em vez de jogar para fora da tela (left: -10000px), deixamos ele visível no topo
-        const wrapper = document.createElement('div');
-        wrapper.style.cssText = 'position:absolute; top:0; left:50%; transform:translateX(-50%); width:900px; background:#ffffff; z-index:9999;';
+            // Wrapper sem CSS transform e com z-index superior ao overlay
+            const wrapper = document.createElement('div');
+            wrapper.style.cssText = 'position:absolute; top:0; left:0; right:0; margin:0 auto; width:850px; background:#ffffff; z-index:9999;';
 
-        try {
-            wrapper.appendChild(montarCloneParaPDF());
-            document.body.appendChild(wrapper);
+            try {
+                wrapper.appendChild(montarCloneParaPDF());
+                document.body.appendChild(wrapper);
 
-            // Pequeno delay de 100ms para o navegador desenhar a tela antes da captura
-            await new Promise(r => setTimeout(r, 100));
+                await new Promise(r => setTimeout(r, 150));
 
-            await window.html2pdf().set({
-                margin: [8, 8, 10, 8],
-                filename: nomeDoArquivo(),
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { 
-                    scale: 2, 
-                    useCORS: true, 
-                    backgroundColor: '#ffffff',
-                    scrollY: 0,
-                    scrollX: 0
-                },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                pagebreak: { mode: ['css', 'legacy'] }
-            }).from(wrapper).save();
+                await window.html2pdf().set({
+                    margin: [10, 10, 12, 10],
+                    filename: nomeDoArquivo(),
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { 
+                        scale: 2, 
+                        useCORS: true, 
+                        backgroundColor: '#ffffff',
+                        scrollY: 0,
+                        scrollX: 0
+                    },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                    pagebreak: { mode: ['css', 'legacy'] }
+                }).from(wrapper).save();
 
-            toast('✅ PDF gerado com sucesso!');
-        } catch (err) {
-            console.error('Erro ao gerar PDF:', err);
-            toast('Não foi possível gerar o PDF. Use Ctrl + P para imprimir.');
-        } finally {
-            wrapper.remove();
-            overlay.remove();
-            btn.disabled = false;
-            btn.innerHTML = textoOriginal;
-        }
-    });
+                toast('✅ PDF gerado com sucesso!');
+            } catch (err) {
+                console.error('Erro ao gerar PDF:', err);
+                toast('Não foi possível gerar o PDF. Use Ctrl + P para imprimir.');
+            } finally {
+                wrapper.remove();
+                overlay.remove();
+                btn.disabled = false;
+                btn.innerHTML = textoOriginal;
+            }
+        });
+    }
 })();
 </script>
